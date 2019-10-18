@@ -9,6 +9,7 @@ import (
 	"errors"
 	"fmt"
 	"runtime"
+	"strconv"
 	"sync/atomic"
 )
 
@@ -115,6 +116,17 @@ func (e *errorWithStack) Unwrap() error {
 
 func (e *errorWithStack) Stack() []Frame {
 	return e.stack
+}
+
+// String retruns a string representation for the stack.
+func (f *Frame) String() string {
+	var b []byte
+	b = append(b, f.Name...)
+	b = append(b, '@')
+	b = append(b, f.Path...)
+	b = append(b, ':')
+	b = strconv.AppendInt(b, int64(f.Line), 10)
+	return string(b)
 }
 
 func stacks(skip int) []Frame {
