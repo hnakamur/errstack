@@ -51,33 +51,51 @@ func New(text string) error {
 // Errorf creates an error with fmt.Errorf and
 // returns a wrapped error.
 //
-// If any of arguments was created with New or Errorf in
-// this package, then stack call frames are taken from the
-// last argument of those having stack call frames and
-// set to the wrapped error.
+// If any of arguments has LV() []string method,
+// then the error is wrapped with the result from the last
+// argument which has LV() []string method. That result
+// can be obtained later with the LV function.
 //
-// If none of arguments are created with New or Errorf in
-// this package, then stack call frames are generated and
-// set to the wrapped error.
+// If any of arguments has the Stack() []Frame method,
+// then stack call frames are taken from the last argument
+// of those having stack call frames and set to the wrapped
+// error.
 //
-// The original error returned by errors.New can be
+// If none of arguments has the Stack() []Frame method,
+// then stack call frames are generated and set to the
+// wrapped error.
+//
+// The original error returned by fmt.Errorf can be
 // obtained by calling Unwrap method of the wrapped error.
 //
 // Call stack frames can be obtained by calling the Stack
 // function later at the upper call frame.
 func Errorf(format string, a ...interface{}) error {
+	err := fmt.Errorf(format, a...)
+
+	for i := len(a) - 1; i >= 0; i-- {
+		if e2, ok := a[i].(interface{ LV() []string }); ok {
+			err = &errorWithLV{
+				err: err,
+				lv:  e2.LV(),
+			}
+			break
+		}
+	}
+
 	var s []Frame
 	for i := len(a) - 1; i >= 0; i-- {
-		if e2, ok := a[i].(*errorWithStack); ok {
-			s = e2.stack
+		if e2, ok := a[i].(interface{ Stack() []Frame }); ok {
+			s = e2.Stack()
 			break
 		}
 	}
 	if s == nil {
 		s = stacks(3)
 	}
+
 	return &errorWithStack{
-		err:   fmt.Errorf(format, a...),
+		err:   err,
 		stack: s,
 	}
 }
@@ -93,7 +111,7 @@ func Stack(err error) []Frame {
 		return nil
 	}
 	for {
-		if e2, ok := err.(*errorWithStack); ok {
+		if e2, ok := err.(interface{ Stack() []Frame }); ok {
 			return e2.Stack()
 		}
 
