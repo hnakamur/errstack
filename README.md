@@ -1,7 +1,13 @@
 errstack
 ========
 
-A Go library to attach stack call frames to errors.
+A Go library to attach call stack frames to errors.
+
+## Warning
+
+* This project is open source, but closed development, no support, no pull request welcome. If you are unsatisfied, feel free to fork it, pick another library, or roll your own.
+* I understand this may be a "Don't do that" style in the Go error handling best practices.
+* I don't promise the future compatibility. Also this library may not work in the future versions of Go, and a migration path may not be provided, leading to the dead end, users of this library will have to rewrite all of your code. You are on your own with no help.
 
 ## How to install
 
