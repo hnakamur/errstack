@@ -110,6 +110,125 @@ func testStackWrapOnlyAtMiddleNoGoodLevel2() error {
 }
 func testStackWrapOnlyAtMiddleNoGoodLevel1() error { return os.ErrExist }
 
+func TestStackWithLV(t *testing.T) {
+	t.Run("wrapAtTop", func(t *testing.T) {
+		err := testStackWithLVWrapAtTopLevel2()
+		s := errstack.Stack(err)
+		testStackFrameNames(t, s, []string{
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapAtTopLevel2",
+			"github.com/hnakamur/errstack_test.TestStackWithLV.func1",
+		})
+	})
+	t.Run("wrapAtMiddle", func(t *testing.T) {
+		err := testStackWithLVWrapAtMiddleLevel3()
+		s := errstack.Stack(err)
+		testStackFrameNames(t, s, []string{
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapAtMiddleLevel2",
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapAtMiddleLevel3",
+			"github.com/hnakamur/errstack_test.TestStackWithLV.func2",
+		})
+	})
+	t.Run("wrapAtBottom", func(t *testing.T) {
+		err := testStackWithLVWrapAtBottomLevel2()
+		s := errstack.Stack(err)
+		testStackFrameNames(t, s, []string{
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapAtBottomLevel1",
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapAtBottomLevel2",
+			"github.com/hnakamur/errstack_test.TestStackWithLV.func3",
+		})
+	})
+	t.Run("wrapOnlyAtMiddle", func(t *testing.T) {
+		err := testStackWithLVWrapOnlyAtMiddleLevel3()
+		s := errstack.Stack(err)
+		testStackFrameNames(t, s, []string{
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapOnlyAtMiddleLevel2",
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapOnlyAtMiddleLevel3",
+			"github.com/hnakamur/errstack_test.TestStackWithLV.func4",
+		})
+	})
+	t.Run("wrapOnlyAtBottom", func(t *testing.T) {
+		err := testStackWithLVWrapOnlyAtBottomLevel2()
+		s := errstack.Stack(err)
+		testStackFrameNames(t, s, []string{
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapOnlyAtBottomLevel1",
+			"github.com/hnakamur/errstack_test.testStackWithLVWrapOnlyAtBottomLevel2",
+			"github.com/hnakamur/errstack_test.TestStackWithLV.func5",
+		})
+	})
+	t.Run("wrapOnlyAtMiddleNoGood", func(t *testing.T) {
+		err := testStackWithLVWrapOnlyAtMiddleNoGoodLevel2()
+		s := errstack.Stack(err)
+		testStackFrameNames(t, s, nil)
+	})
+	t.Run("wrapOnlyAtBottomNoGood", func(t *testing.T) {
+		err := testStackWithLVWrapOnlyAtBottomNoGoodLevel2()
+		s := errstack.Stack(err)
+		testStackFrameNames(t, s, nil)
+	})
+}
+
+func testStackWithLVWrapAtTopLevel2() error {
+	return errstack.WithLV(
+		errstack.Errorf("outer: %s", testStackWithLVWrapAtTopLevel1()),
+	).Int64("userID", 1)
+}
+func testStackWithLVWrapAtTopLevel1() error { return os.ErrExist }
+
+func testStackWithLVWrapAtMiddleLevel3() error {
+	return errstack.WithLV(
+		errstack.Errorf("top: %w", testStackWithLVWrapAtMiddleLevel2()),
+	).String("reqID", "req1")
+}
+func testStackWithLVWrapAtMiddleLevel2() error {
+	return errstack.WithLV(
+		errstack.Errorf("middle: %s", testStackWithLVWrapAtMiddleLevel1()),
+	).Int64("userID", 1)
+}
+func testStackWithLVWrapAtMiddleLevel1() error { return os.ErrExist }
+
+func testStackWithLVWrapAtBottomLevel2() error {
+	return errstack.WithLV(
+		errstack.Errorf("outer: %s", testStackWithLVWrapAtBottomLevel1()),
+	).String("reqID", "req1")
+}
+func testStackWithLVWrapAtBottomLevel1() error {
+	return errstack.WithLV(errstack.New("my error")).Int64("userID", 1)
+}
+
+func testStackWithLVWrapOnlyAtMiddleLevel3() error {
+	return fmt.Errorf("top: %w", testStackWithLVWrapOnlyAtMiddleLevel2())
+}
+func testStackWithLVWrapOnlyAtMiddleLevel2() error {
+	return errstack.WithLV(
+		errstack.Errorf("middle: %s", testStackWithLVWrapOnlyAtMiddleLevel1()),
+	).Int64("userID", 1)
+}
+func testStackWithLVWrapOnlyAtMiddleLevel1() error { return os.ErrExist }
+
+func testStackWithLVWrapOnlyAtBottomLevel2() error {
+	return fmt.Errorf("outer: %w", testStackWithLVWrapOnlyAtBottomLevel1())
+}
+func testStackWithLVWrapOnlyAtBottomLevel1() error {
+	return errstack.WithLV(errstack.New("my error")).Int64("userID", 1)
+}
+
+func testStackWithLVWrapOnlyAtBottomNoGoodLevel2() error {
+	return fmt.Errorf("outer: %s", testStackWithLVWrapOnlyAtBottomNoGoodLevel1())
+}
+func testStackWithLVWrapOnlyAtBottomNoGoodLevel1() error {
+	return errstack.WithLV(errstack.New("my error")).Int64("userID", 1)
+}
+
+func testStackWithLVWrapOnlyAtMiddleNoGoodLevel3() error {
+	return fmt.Errorf("top: %s", testStackWithLVWrapOnlyAtMiddleNoGoodLevel2())
+}
+func testStackWithLVWrapOnlyAtMiddleNoGoodLevel2() error {
+	return errstack.WithLV(
+		errstack.Errorf("middle: %s", testStackWithLVWrapOnlyAtMiddleNoGoodLevel1()),
+	).Int64("userID", 1)
+}
+func testStackWithLVWrapOnlyAtMiddleNoGoodLevel1() error { return os.ErrExist }
+
 func TestIs(t *testing.T) {
 	t.Run("wrapAtTop", func(t *testing.T) {
 		err := testIsWrapAtTopLevel2()
