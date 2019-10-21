@@ -73,31 +73,37 @@ func New(text string) error {
 func Errorf(format string, a ...interface{}) error {
 	err := fmt.Errorf(format, a...)
 
+	var lv []string
 	for i := len(a) - 1; i >= 0; i-- {
-		if e2, ok := a[i].(interface{ LV() []string }); ok {
-			err = &errorWithLV{
-				err: err,
-				lv:  e2.LV(),
+		if e2, ok := a[i].(error); ok {
+			if lv2 := LV(e2); lv2 != nil {
+				lv = lv2
+				break
 			}
-			break
 		}
 	}
 
 	var s []Frame
 	for i := len(a) - 1; i >= 0; i-- {
-		if e2, ok := a[i].(interface{ Stack() []Frame }); ok {
-			s = e2.Stack()
-			break
+		if e2, ok := a[i].(error); ok {
+			if s2 := Stack(e2); s2 != nil {
+				s = s2
+				break
+			}
 		}
 	}
 	if s == nil {
 		s = stacks(3)
 	}
 
-	return &errorWithStack{
+	err = &errorWithStack{
 		err:   err,
 		stack: s,
 	}
+	if lv == nil {
+		return err
+	}
+	return &errorWithLV{err: err, lv: lv}
 }
 
 // Stack finds the first error in err's chain that has stack call frames,
@@ -150,13 +156,18 @@ func (f *Frame) String() string {
 func stacks(skip int) []Frame {
 	var ss []Frame
 	pcs := make([]uintptr, atomic.LoadUint32(&MaxFrames))
-	n := runtime.Callers(0, pcs[:])
-	for i := skip; i < n; i++ {
-		pc := pcs[i]
-		fn := runtime.FuncForPC(pc)
-		path, line := fn.FileLine(pc)
-		name := fn.Name()
-		ss = append(ss, Frame{Name: name, Line: line, Path: path})
+	runtime.Callers(skip, pcs)
+	frames := runtime.CallersFrames(pcs)
+	for {
+		frame, more := frames.Next()
+		if !more {
+			break
+		}
+		ss = append(ss, Frame{
+			Name: frame.Function,
+			Line: frame.Line,
+			Path: frame.File,
+		})
 	}
 	return ss
 }
